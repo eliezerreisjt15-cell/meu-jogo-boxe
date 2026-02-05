@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Boxe Simples</title>
+<style>
+*{margin:0;padding:0}
+body{overflow:hidden;background:#222}
+canvas{display:block}
+#restart{
+position:fixed;
+top:20px;
+left:20px;
+padding:10px 20px;
+font-size:16px;
+display:none;
+}
+</style>
+</head>
+<body>
+<button id="restart" onclick="location.reload()">Restart</button>
+<canvas id="c"></canvas>
+
+<script>
+const c=document.getElementById("c"),ctx=c.getContext("2d");
+c.width=innerWidth;c.height=innerHeight;
+
+const chão=c.height-120;
+let gameOver=false;
+const keys={};
+
+class F{
+constructor(x,col){
+this.x=x;this.y=chão;
+this.w=60;this.h=100;
+this.vx=0;this.vy=0;
+this.speed=4;
+this.jump=16;
+this.life=100;
+this.face=1;
+this.atk=false;
+this.onGround=true;
+this.col=col;
+this.alive=true;
+}
+update(){
+if(!this.alive)return;
+
+this.vx=0;
+if(keys["a"]){this.vx=-this.speed;this.face=-1}
+if(keys["d"]){this.vx=this.speed;this.face=1}
+
+this.x+=this.vx;
+
+this.vy+=1.2;
+this.y+=this.vy;
+
+if(this.y>=chão){
+this.y=chão;
+this.vy=0;
+this.onGround=true;
+}
+
+this.x=Math.max(0,Math.min(this.x,c.width-this.w));
+}
+draw(){
+ctx.save();
+ctx.translate(this.x+this.w/2,this.y+this.h/2);
+if(!this.alive)ctx.rotate(Math.PI/2);
+ctx.fillStyle=this.col;
+ctx.fillRect(-this.w/2,-this.h/2,this.w,this.h);
+ctx.restore();
+
+if(this.atk){
+ctx.fillRect(this.x+(this.face*30),this.y+40,30,15);
+}
+}
+pular(){
+if(this.onGround){
+this.vy=-this.jump;
+this.onGround=false;
+}
+}
+}
+
+const p=new F(150,"#ffcc00");
+const e=new F(c.width-250,"#aa00ff");
+
+function hit(a,b){
+if(!a.atk||!a.alive||!b.alive)return;
+const hb={x:a.x+(a.face*30),y:a.y+35,w:30,h:30};
+if(hb.x<b.x+b.w&&hb.x+hb.w>b.x&&hb.y<b.y+b.h&&hb.y+hb.h>b.y){
+b.life-=2;
+if(b.life<=0){
+b.life=0;
+b.alive=false;
+gameOver=true;
+document.getElementById("restart").style.display="block";
+}
+}
+}
+
+function loop(){
+ctx.clearRect(0,0,c.width,c.height);
+
+// inimigo simples
+if(e.alive&&!gameOver){
+if(p.x<e.x)e.x-=2;
+else e.x+=2;
+
+if(Math.random()<0.02){
+e.atk=true;
+setTimeout(()=>e.atk=false,150);
+}
+}
+
+// combate
+hit(p,e);
+hit(e,p);
+
+// update
+p.update();
+e.update();
+
+// chão
+ctx.fillStyle="#555";
+ctx.fillRect(0,chão+100,c.width,20);
+
+// draw
+p.draw();
+e.draw();
+
+// HUD
+ctx.fillStyle="green";
+ctx.fillRect(20,20,p.life*2,15);
+ctx.fillRect(c.width-220,20,e.life*2,15);
+
+requestAnimationFrame(loop);
+}
+
+// controles simples
+addEventListener("keydown",k=>{
+keys[k.key]=true;
+if(k.key==="w")p.pular();
+if(k.key===" ")p.atk=true;
+});
+addEventListener("keyup",k=>{
+keys[k.key]=false;
+if(k.key===" ")p.atk=false;
+});
+
+loop();
+</script>
+</body>
+</html>
